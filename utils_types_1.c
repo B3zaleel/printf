@@ -27,7 +27,6 @@ void set_float_parts(double num,	uchar_t exponent_size,
 			*(str + i) = ((tmp >> i) & 1)  + '0';
 		*(str + size) = '\0';
 		rev_string(str);
-		printf("[debg]: hex-> %lx\n", tmp);
 		float_info->sign = *str;
 		for (i = 0; i < exponent_size; i++)
 			*(float_info->exponent + i) = *(str + i + 1);
