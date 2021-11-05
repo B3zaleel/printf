@@ -24,12 +24,10 @@ void set_float_parts(double num,	uchar_t exponent_size,
 	if (str != NULL)
 	{
 		for (i = 0; i < size; i++)
-		{
-			*(str + i) = (tmp % 2)  + '0';
-			tmp /= 2;
-		}
+			*(str + i) = ((tmp >> i) & 1)  + '0';
 		*(str + size) = '\0';
 		rev_string(str);
+		printf("[debg]: hex-> %lx\n", tmp);
 		float_info->sign = *str;
 		for (i = 0; i < exponent_size; i++)
 			*(float_info->exponent + i) = *(str + i + 1);
@@ -59,11 +57,11 @@ char *mantissa_to_dec_fraction(char *mantissa, unsigned short frac_len)
 		mem_set(str, frac_len + 2, '0');
 		*(str + 1) = '.';
 		*(str + frac_len + 2) = '\0';
-		for (i = 0 - 1; i >= 0 - len; i--)
+		for (i = 0; i < len; i++)
 		{
-			if (*(mantissa + ABS(i) - 1) == '1')
+			if (*(mantissa + i) == '1')
 			{
-				pow2 = two_exp(i);
+				pow2 = two_exp(-(i + 1));
 				str = add_float(pow2, str, TRUE);
 			}
 		}
@@ -82,33 +80,27 @@ char *float_to_str(float_info_t *flt_info, char can_free)
 {
 	uchar_t exponent_size = str_len(flt_info->exponent);
 	short bias = two_pexp(exponent_size) / 2 - 1, exponent;
-	char *power, *fraction, *product, *float_num, *hidden_bit, *pow_frac;
+	char *power, *fraction, *product, *float_num, *pow_frac;
 	unsigned short frac_len = 22;/* Only doubles are supported */
 
-	hidden_bit = malloc(sizeof(char) * 2);
-	if (hidden_bit != NULL)
+	exponent = bin_to_int(flt_info->exponent) - bias;
+	power = two_exp(exponent);
+	fraction = mantissa_to_dec_fraction(flt_info->mantissa, frac_len);
+	fraction[0] = '1';
+	if (exponent >= 0)
 	{
-		*(hidden_bit + 0) = '1';
-		*(hidden_bit + 1) = '\0';
-		exponent = bin_to_int(flt_info->exponent) - bias;
-		power = two_exp(exponent);
-		fraction = mantissa_to_dec_fraction(flt_info->mantissa, frac_len);
-		fraction = str_cat(hidden_bit, fraction, TRUE);
-		if (exponent >= 0)
+		pow_frac = malloc(sizeof(char) * 3);
+		if (pow_frac)
 		{
-			pow_frac = malloc(sizeof(char) * 3);
-			if (pow_frac)
-			{
-				*(pow_frac + 0) = '.';
-				*(pow_frac + 1) = '0';
-				*(pow_frac + 2) = '\0';
-				power = str_cat(power, pow_frac, TRUE);
-			}
+			*(pow_frac + 0) = '.';
+			*(pow_frac + 1) = '0';
+			*(pow_frac + 2) = '\0';
+			power = str_cat(power, pow_frac, TRUE);
 		}
-		product = mul_float(fraction, power, TRUE);
-		float_num = str_cat(flt_info->sign == '1' ? "-" : "", product, FALSE);
-		free(product);
 	}
+	product = mul_float(fraction, power, TRUE);
+	float_num = str_cat(flt_info->sign == '1' ? "-" : "", product, FALSE);
+	free(product);
 	if (can_free)
 		free_float_info(flt_info);
 	return (float_num);
